@@ -1,12 +1,12 @@
 package database
 
 import (
-	"dove/models"
 	"fmt"
+	"log"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
 )
 
 var DB *gorm.DB
@@ -23,12 +23,6 @@ func InitDB() error {
 
 	if err != nil {
 		return fmt.Errorf("连接数据库失败: %v", err)
-	}
-
-	// 自动迁移（可选，如果表已存在则不会修改）
-	err = DB.AutoMigrate(&models.User{})
-	if err != nil {
-		log.Printf("自动迁移失败: %v", err)
 	}
 
 	log.Println("数据库连接成功")
