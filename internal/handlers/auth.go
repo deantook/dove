@@ -5,6 +5,7 @@ import (
 	"dove/pkg/common"
 	"dove/pkg/database"
 	"dove/pkg/utils"
+	"errors"
 	"regexp"
 	"strings"
 
@@ -61,7 +62,7 @@ func PhoneRegister(c *gin.Context) {
 		common.Error(c, common.ErrPhoneExists.Code, common.ErrPhoneExists.Message)
 		return
 	}
-	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+	if result.Error != nil && !errors.Is(gorm.ErrRecordNotFound, result.Error) {
 		common.InternalServerError(c, "查询用户失败")
 		return
 	}
@@ -119,7 +120,7 @@ func PhoneLogin(c *gin.Context) {
 	var user model.User
 	result := database.DB.Where("phone = ?", req.Phone).First(&user)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(gorm.ErrRecordNotFound, result.Error) {
 			common.Error(c, common.ErrPhoneNotFound.Code, common.ErrPhoneNotFound.Message)
 		} else {
 			common.InternalServerError(c, "查询用户失败")
