@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"dove/internal/handlers"
+	"dove/internal/app/handlers"
 	"dove/internal/middleware"
 	"net/http"
 

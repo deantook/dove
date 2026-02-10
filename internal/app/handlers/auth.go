@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"dove/internal/model"
+	"dove/internal/data/domain"
 	"dove/pkg/common"
 	"dove/pkg/database"
 	"dove/pkg/utils"
@@ -56,7 +56,7 @@ func PhoneRegister(c *gin.Context) {
 	}
 
 	// 检查手机号是否已存在
-	var existingUser model.User
+	var existingUser domain.User
 	result := database.DB.Where("phone = ?", req.Phone).First(&existingUser)
 	if result.Error == nil {
 		common.Error(c, common.ErrPhoneExists.Code, common.ErrPhoneExists.Message)
@@ -81,7 +81,7 @@ func PhoneRegister(c *gin.Context) {
 	}
 
 	// 创建用户
-	user := model.User{
+	user := domain.User{
 		Phone:        &req.Phone,
 		PasswordHash: passwordHash,
 		Nickname:     nickname,
@@ -117,7 +117,7 @@ func PhoneLogin(c *gin.Context) {
 	}
 
 	// 查找用户
-	var user model.User
+	var user domain.User
 	result := database.DB.Where("phone = ?", req.Phone).First(&user)
 	if result.Error != nil {
 		if errors.Is(gorm.ErrRecordNotFound, result.Error) {
