@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CORS 跨域测试页面</h1>
+        <p>这个页面用于测试 Birgitta API 的 CORS 配置。</p>
+        
+        <div class="test-section">
+            <h3>1. 测试 GET 请求</h3>
+            <p>测试从不同域名发送 GET 请求到 API</p>
+            <button onclick="testGetRequest('http://localhost:3000')">测试 localhost:3000</button>
+            <button onclick="testGetRequest('http://localhost:8080')">测试 localhost:8080</button>
+            <button onclick="testGetRequest('http://malicious-site.com')">测试恶意域名</button>
+            <div id="getResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 测试 POST 请求</h3>
+            <p>测试从不同域名发送 POST 请求到 API</p>
+            <button onclick="testPostRequest('http://localhost:3000')">测试 localhost:3000</button>
+            <button onclick="testPostRequest('http://localhost:8080')">测试 localhost:8080</button>
+            <button onclick="testPostRequest('http://malicious-site.com')">测试恶意域名</button>
+            <div id="postResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 测试预检请求 (OPTIONS)</h3>
+            <p>测试浏览器发送的预检请求</p>
+            <button onclick="testPreflightRequest()">测试预检请求</button>
+            <div id="preflightResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 测试带认证的请求</h3>
+            <p>测试带有 Authorization 头的请求</p>
+            <button onclick="testAuthRequest()">测试认证请求</button>
+            <div id="authResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. 测试凭证传递</h3>
+            <p>测试 cookies 等凭证的传递</p>
+            <button onclick="testCredentialsRequest()">测试凭证请求</button>
+            <div id="credentialsResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+
+        function displayResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        async function testGetRequest(origin) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/hello`, {
+                    method: 'GET',
+                    headers: {
+                        'Origin': origin,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const result = `请求来源: ${origin}\n状态码: ${response.status}\n响应头:\n${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}\n响应数据:\n${JSON.stringify(data, null, 2)}`;
+                
+                displayResult('getResult', result, response.ok ? 'success' : 'error');
+            } catch (error) {
+                displayResult('getResult', `错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPostRequest(origin) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/data`, {
+                    method: 'POST',
+                    headers: {
+                        'Origin': origin,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'test',
+                        message: 'Hello from CORS test'
+                    })
+                });
+
+                const data = await response.json();
+                const result = `请求来源: ${origin}\n状态码: ${response.status}\n响应头:\n${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}\n响应数据:\n${JSON.stringify(data, null, 2)}`;
+                
+                displayResult('postResult', result, response.ok ? 'success' : 'error');
+            } catch (error) {
+                displayResult('postResult', `错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPreflightRequest() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/data`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:3000',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization'
+                    }
+                });
+
+                const result = `预检请求状态码: ${response.status}\n响应头:\n${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`;
+                
+                displayResult('preflightResult', result, response.ok ? 'success' : 'error');
+            } catch (error) {
+                displayResult('preflightResult', `错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAuthRequest() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/data`, {
+                    method: 'POST',
+                    headers: {
+                        'Origin': 'http://localhost:3000',
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        name: 'auth-test',
+                        message: 'Testing with Authorization header'
+                    })
+                });
+
+                const data = await response.json();
+                const result = `认证请求状态码: ${response.status}\n响应头:\n${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}\n响应数据:\n${JSON.stringify(data, null, 2)}`;
+                
+                displayResult('authResult', result, response.ok ? 'success' : 'error');
+            } catch (error) {
+                displayResult('authResult', `错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCredentialsRequest() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/hello`, {
+                    method: 'GET',
+                    headers: {
+                        'Origin': 'http://localhost:3000',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include' // 包含凭证
+                });
+
+                const data = await response.json();
+                const result = `凭证请求状态码: ${response.status}\n响应头:\n${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}\n响应数据:\n${JSON.stringify(data, null, 2)}`;
+                
+                displayResult('credentialsResult', result, response.ok ? 'success' : 'error');
+            } catch (error) {
+                displayResult('credentialsResult', `错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时显示说明
+        window.onload = function() {
+            displayResult('getResult', '点击上面的按钮开始测试 GET 请求', 'info');
+            displayResult('postResult', '点击上面的按钮开始测试 POST 请求', 'info');
+            displayResult('preflightResult', '点击上面的按钮开始测试预检请求', 'info');
+            displayResult('authResult', '点击上面的按钮开始测试认证请求', 'info');
+            displayResult('credentialsResult', '点击上面的按钮开始测试凭证请求', 'info');
+        };
+    </script>
+</body>
+</html>

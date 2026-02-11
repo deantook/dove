@@ -1,0 +1,65 @@
+# Git 相关
+.git
+.gitignore
+.gitattributes
+
+# 文档（保留docs目录，因为main.go需要导入docs包）
+README.md
+*.md
+
+# 开发工具
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 测试文件
+*_test.go
+test/
+tests/
+
+# 构建产物
+bin/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 环境文件
+.env
+.env.local
+.env.dev
+.env.test
+.env.production
+
+# 依赖目录
+vendor/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Docker 相关
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# 其他
+*.tar.gz
+*.zip
+*.rar
+
+# 开发配置文件
+air.toml
