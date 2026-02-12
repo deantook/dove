@@ -1,128 +1,147 @@
 package service
 
 import (
-	"context"
-	"dove/internal/domain"
-	"dove/internal/model"
-	"dove/pkg/logger"
-	"dove/pkg/pagination"
 	"errors"
+	"fmt"
+
+	"github.com/deantook/dove/internal/model"
+
+	"github.com/deantook/brigitta/pkg/database"
+	"gorm.io/gorm"
 )
 
+// UserService 用户服务接口
+type UserService interface {
+	CreateUser(username string) (*model.User, error)
+	GetUserByID(id int) (*model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
+	UpdateUser(id int, username string) (*model.User, error)
+	DeleteUser(id int) error
+	ListUsers(page, pageSize int) ([]model.User, int64, error)
+}
+
 type userService struct {
-	repo domain.UserRepository
+	db *gorm.DB
 }
 
-func NewUserService(repo domain.UserRepository) domain.UserService {
-	return &userService{repo: repo}
+// NewUserService 创建用户服务实例
+func NewUserService() UserService {
+	return &userService{
+		db: database.GetDB(),
+	}
 }
 
-func (s *userService) Create(ctx context.Context, user *model.User) error {
+// CreateUser 创建用户
+func (s *userService) CreateUser(username string) (*model.User, error) {
+	if username == "" {
+		return nil, errors.New("用户名不能为空")
+	}
+
 	// 检查用户名是否已存在
-	if _, err := s.repo.GetByUsername(ctx, user.Username); err == nil {
-		logger.WarnWithTrace(ctx, "Username already exists", "username", user.Username)
-		return errors.New("username already exists")
+	var existingUser model.User
+	if err := s.db.Where("username = ?", username).First(&existingUser).Error; err == nil {
+		return nil, fmt.Errorf("用户名 %s 已存在", username)
 	}
 
-	// 检查邮箱是否已存在
-	if _, err := s.repo.GetByEmail(ctx, user.Email); err == nil {
-		logger.WarnWithTrace(ctx, "Email already exists", "email", user.Email)
-		return errors.New("email already exists")
+	user := &model.User{
+		Username: username,
 	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to create user", "error", err.Error(), "username", user.Username)
-		return err
+	if err := s.db.Create(user).Error; err != nil {
+		return nil, fmt.Errorf("创建用户失败: %w", err)
 	}
 
-	logger.InfoWithTrace(ctx, "User created successfully", "user_id", user.ID, "username", user.Username)
-	return nil
-}
-
-func (s *userService) GetByID(ctx context.Context, id uint) (*model.User, error) {
-	user, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to get user by ID", "error", err.Error(), "user_id", id)
-		return nil, err
-	}
-	logger.InfoWithTrace(ctx, "User retrieved by ID", "user_id", id)
 	return user, nil
 }
 
-func (s *userService) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-	user, err := s.repo.GetByUsername(ctx, username)
+// GetUserByID 根据ID获取用户
+func (s *userService) GetUserByID(id int) (*model.User, error) {
+	var user model.User
+	if err := s.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("用户不存在，ID: %d", id)
+		}
+		return nil, fmt.Errorf("查询用户失败: %w", err)
+	}
+	return &user, nil
+}
+
+// GetUserByUsername 根据用户名获取用户
+func (s *userService) GetUserByUsername(username string) (*model.User, error) {
+	var user model.User
+	if err := s.db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("用户不存在，用户名: %s", username)
+		}
+		return nil, fmt.Errorf("查询用户失败: %w", err)
+	}
+	return &user, nil
+}
+
+// UpdateUser 更新用户
+func (s *userService) UpdateUser(id int, username string) (*model.User, error) {
+	if username == "" {
+		return nil, errors.New("用户名不能为空")
+	}
+
+	// 检查用户是否存在
+	user, err := s.GetUserByID(id)
 	if err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to get user by username", "error", err.Error(), "username", username)
 		return nil, err
 	}
-	logger.InfoWithTrace(ctx, "User retrieved by username", "username", username)
+
+	// 检查新用户名是否已被其他用户使用
+	var existingUser model.User
+	if err := s.db.Where("username = ? AND id != ?", username, id).First(&existingUser).Error; err == nil {
+		return nil, fmt.Errorf("用户名 %s 已被使用", username)
+	}
+
+	// 更新用户
+	user.Username = username
+	if err := s.db.Save(user).Error; err != nil {
+		return nil, fmt.Errorf("更新用户失败: %w", err)
+	}
+
 	return user, nil
 }
 
-func (s *userService) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	user, err := s.repo.GetByEmail(ctx, email)
+// DeleteUser 删除用户
+func (s *userService) DeleteUser(id int) error {
+	// 检查用户是否存在
+	_, err := s.GetUserByID(id)
 	if err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to get user by email", "error", err.Error(), "email", email)
-		return nil, err
-	}
-	logger.InfoWithTrace(ctx, "User retrieved by email", "email", email)
-	return user, nil
-}
-
-func (s *userService) GetAll(ctx context.Context) ([]model.User, error) {
-	users, err := s.repo.GetAll(ctx)
-	if err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to get all users", "error", err.Error())
-		return nil, err
-	}
-	logger.InfoWithTrace(ctx, "All users retrieved", "count", len(users))
-	return users, nil
-}
-
-func (s *userService) GetAllWithPagination(ctx context.Context, page *pagination.PageRequest) (*pagination.PageResponse, error) {
-	users, total, err := s.repo.GetAllWithPagination(ctx, page)
-	if err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to get users with pagination", "error", err.Error(), "page", page.Page, "pageSize", page.PageSize)
-		return nil, err
-	}
-
-	// 不返回密码
-	for i := range users {
-		users[i].Password = ""
-	}
-
-	pageResponse := pagination.NewPageResponse(users, total, page.Page, page.PageSize)
-	logger.InfoWithTrace(ctx, "Users retrieved with pagination", "count", len(users), "total", total, "page", page.Page, "pageSize", page.PageSize)
-	return pageResponse, nil
-}
-
-func (s *userService) Update(ctx context.Context, user *model.User) error {
-	// 检查用户名是否已被其他用户使用
-	if existingUser, err := s.repo.GetByUsername(ctx, user.Username); err == nil && existingUser.ID != user.ID {
-		logger.WarnWithTrace(ctx, "Username already exists for update", "username", user.Username, "user_id", user.ID)
-		return errors.New("username already exists")
-	}
-
-	// 检查邮箱是否已被其他用户使用
-	if existingUser, err := s.repo.GetByEmail(ctx, user.Email); err == nil && existingUser.ID != user.ID {
-		logger.WarnWithTrace(ctx, "Email already exists for update", "email", user.Email, "user_id", user.ID)
-		return errors.New("email already exists")
-	}
-
-	if err := s.repo.Update(ctx, user); err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to update user", "error", err.Error(), "user_id", user.ID)
 		return err
 	}
 
-	logger.InfoWithTrace(ctx, "User updated successfully", "user_id", user.ID, "username", user.Username)
+	if err := s.db.Delete(&model.User{}, id).Error; err != nil {
+		return fmt.Errorf("删除用户失败: %w", err)
+	}
+
 	return nil
 }
 
-func (s *userService) Delete(ctx context.Context, id uint) error {
-	if err := s.repo.Delete(ctx, id); err != nil {
-		logger.ErrorWithTrace(ctx, "Failed to delete user", "error", err.Error(), "user_id", id)
-		return err
+// ListUsers 分页查询用户列表
+func (s *userService) ListUsers(page, pageSize int) ([]model.User, int64, error) {
+	if page < 1 {
+		page = 1
 	}
-	logger.InfoWithTrace(ctx, "User deleted successfully", "user_id", id)
-	return nil
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	var users []model.User
+	var total int64
+
+	// 获取总数
+	if err := s.db.Model(&model.User{}).Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("查询用户总数失败: %w", err)
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := s.db.Order("id DESC").Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, fmt.Errorf("查询用户列表失败: %w", err)
+	}
+
+	return users, total, nil
 }

@@ -1,0 +1,17 @@
+brigitta:
+  server:
+    port: 8080
+  database:
+    type: mysql
+    host: 117.50.220.90
+    port: 3306
+    username: root
+    password: dean123
+    database: dove
+  cache:
+    type: redis
+    host: 117.50.220.90
+    port: 6379
+    password: dean123
+    database: 0
+    ttl: 3600
