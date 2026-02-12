@@ -47,7 +47,15 @@ type ListUsersResponse struct {
 }
 
 // CreateUser 创建用户
-// POST /api/users
+// @Summary      创建用户
+// @Description  根据用户名创建新用户
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        body  body      handler.CreateUserRequest  true  "创建用户请求"
+// @Success      200   {object}  object  "success, message, data(user)"
+// @Failure      400   {object}  object  "success, message"
+// @Router       /api/v1/users [post]
 func CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -75,7 +83,15 @@ func CreateUser(c *gin.Context) {
 }
 
 // GetUser 获取用户详情
-// GET /api/users/:id
+// @Summary      获取用户详情
+// @Description  根据用户 ID 获取用户信息
+// @Tags         users
+// @Produce      json
+// @Param        id   path      int  true  "用户 ID"
+// @Success      200  {object}  object  "success, data(user)"
+// @Failure      400  {object}  object  "success, message"
+// @Failure      404  {object}  object  "success, message"
+// @Router       /api/v1/users/{id} [get]
 func GetUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -103,7 +119,16 @@ func GetUser(c *gin.Context) {
 }
 
 // UpdateUser 更新用户
-// PUT /api/users/:id
+// @Summary      更新用户
+// @Description  根据用户 ID 更新用户信息
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int  true  "用户 ID"
+// @Param        body  body      handler.UpdateUserRequest  true  "更新用户请求"
+// @Success      200   {object}  object  "success, message, data(user)"
+// @Failure      400   {object}  object  "success, message"
+// @Router       /api/v1/users/{id} [put]
 func UpdateUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -141,7 +166,14 @@ func UpdateUser(c *gin.Context) {
 }
 
 // DeleteUser 删除用户
-// DELETE /api/users/:id
+// @Summary      删除用户
+// @Description  根据用户 ID 删除用户
+// @Tags         users
+// @Produce      json
+// @Param        id   path      int  true  "用户 ID"
+// @Success      200  {object}  object  "success, message"
+// @Failure      400  {object}  object  "success, message"
+// @Router       /api/v1/users/{id} [delete]
 func DeleteUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -168,7 +200,15 @@ func DeleteUser(c *gin.Context) {
 }
 
 // ListUsers 获取用户列表（分页）
-// GET /api/users?page=1&page_size=10
+// @Summary      用户列表
+// @Description  分页获取用户列表
+// @Tags         users
+// @Produce      json
+// @Param        page       query     int  false  "页码"       default(1)
+// @Param        page_size  query     int  false  "每页条数"   default(10)
+// @Success      200        {object}  handler.ListUsersResponse
+// @Failure      500        {object}  object  "success, message"
+// @Router       /api/v1/users [get]
 func ListUsers(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
 	pageSizeStr := c.DefaultQuery("page_size", "10")

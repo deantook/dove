@@ -29,7 +29,16 @@ type GetRedisResponse struct {
 }
 
 // SetRedis 写Redis数据的接口
-// POST /api/redis/set
+// @Summary      写入 Redis
+// @Description  根据 key/value 写入 Redis，可选 TTL（秒）
+// @Tags         redis
+// @Accept       json
+// @Produce      json
+// @Param        body  body      SetRedisRequest  true  "key, value, ttl(可选)"
+// @Success      200   {object}  SetRedisResponse
+// @Failure      400   {object}  SetRedisResponse
+// @Failure      500   {object}  SetRedisResponse
+// @Router       /api/v1/redis/set [post]
 func SetRedis(c *gin.Context) {
 	var req SetRedisRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -63,7 +72,15 @@ func SetRedis(c *gin.Context) {
 }
 
 // GetRedis 读Redis数据的接口
-// GET /api/redis/get?key=xxx
+// @Summary      读取 Redis
+// @Description  根据 key 从 Redis 读取 value
+// @Tags         redis
+// @Produce      json
+// @Param        key   query     string  true  "Redis key"
+// @Success      200   {object}  GetRedisResponse
+// @Failure      400   {object}  GetRedisResponse
+// @Failure      404   {object}  GetRedisResponse
+// @Router       /api/v1/redis/get [get]
 func GetRedis(c *gin.Context) {
 	key := c.Query("key")
 	if key == "" {

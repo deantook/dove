@@ -1,0 +1,28 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "启动 Server",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/cmd/server",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"name": "启动 Server (调试)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/server",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"name": "附加到进程",
+			"type": "go",
+			"request": "attach",
+			"mode": "local",
+			"processId": 0
+		}
+	]
+}
