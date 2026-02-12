@@ -15,6 +15,132 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "使用手机号和验证码登录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "用户登录",
+                "parameters": [
+                    {
+                        "description": "登录请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "description": "使用手机号和验证码注册新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "用户注册",
+                "parameters": [
+                    {
+                        "description": "注册请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/send-code": {
+            "post": {
+                "description": "向指定手机号发送验证码（开发阶段直接返回验证码）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "发送验证码",
+                "parameters": [
+                    {
+                        "description": "发送验证码请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.SendVerificationCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.SendVerificationCodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.SendVerificationCodeResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.SendVerificationCodeResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/redis/get": {
             "get": {
                 "description": "根据 key 从 Redis 读取 value",
@@ -38,19 +164,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.GetRedisResponse"
+                            "$ref": "#/definitions/handler.GetRedisResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.GetRedisResponse"
+                            "$ref": "#/definitions/handler.GetRedisResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.GetRedisResponse"
+                            "$ref": "#/definitions/handler.GetRedisResponse"
                         }
                     }
                 }
@@ -76,7 +202,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.SetRedisRequest"
+                            "$ref": "#/definitions/handler.SetRedisRequest"
                         }
                     }
                 ],
@@ -84,19 +210,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.SetRedisResponse"
+                            "$ref": "#/definitions/handler.SetRedisResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.SetRedisResponse"
+                            "$ref": "#/definitions/handler.SetRedisResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.SetRedisResponse"
+                            "$ref": "#/definitions/handler.SetRedisResponse"
                         }
                     }
                 }
@@ -132,7 +258,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.ListUsersResponse"
+                            "$ref": "#/definitions/handler.ListUsersResponse"
                         }
                     },
                     "500": {
@@ -162,7 +288,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.CreateUserRequest"
+                            "$ref": "#/definitions/handler.CreateUserRequest"
                         }
                     }
                 ],
@@ -248,7 +374,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.UpdateUserRequest"
+                            "$ref": "#/definitions/handler.UpdateUserRequest"
                         }
                     }
                 ],
@@ -303,7 +429,19 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_handler.CreateUserRequest": {
+        "handler.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handler.CreateUserRequest": {
             "type": "object",
             "required": [
                 "username"
@@ -314,7 +452,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.GetRedisResponse": {
+        "handler.GetRedisResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -328,7 +466,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.ListUsersResponse": {
+        "handler.ListUsersResponse": {
             "type": "object",
             "properties": {
                 "page": {
@@ -346,12 +484,71 @@ const docTemplate = `{
                 "users": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_handler.UserResponse"
+                        "$ref": "#/definitions/handler.UserResponse"
                     }
                 }
             }
         },
-        "internal_handler.SetRedisRequest": {
+        "handler.LoginRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "phone"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "phone"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.SendVerificationCodeRequest": {
+            "type": "object",
+            "required": [
+                "phone"
+            ],
+            "properties": {
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.SendVerificationCodeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "开发阶段直接返回验证码",
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handler.SetRedisRequest": {
             "type": "object",
             "required": [
                 "key",
@@ -370,7 +567,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.SetRedisResponse": {
+        "handler.SetRedisResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -381,7 +578,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.UpdateUserRequest": {
+        "handler.UpdateUserRequest": {
             "type": "object",
             "required": [
                 "username"
@@ -392,14 +589,29 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.UserResponse": {
+        "handler.UserResponse": {
             "type": "object",
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "create_time": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "update_time": {
+                    "type": "string"
                 },
                 "username": {
                     "type": "string"

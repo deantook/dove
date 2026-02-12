@@ -2,3 +2,6 @@
 *.log
 *.jsonl
 *.gz
+
+
+server.exe

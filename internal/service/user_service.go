@@ -15,9 +15,12 @@ type UserService interface {
 	CreateUser(username string) (*model.User, error)
 	GetUserByID(id int) (*model.User, error)
 	GetUserByUsername(username string) (*model.User, error)
+	GetUserByPhone(phone string) (*model.User, error)
 	UpdateUser(id int, username string) (*model.User, error)
 	DeleteUser(id int) error
 	ListUsers(page, pageSize int) ([]model.User, int64, error)
+	RegisterByPhone(phone string, code string, nickname string) (*model.User, error)
+	LoginByPhone(phone string, code string) (*model.User, error)
 }
 
 type userService struct {
@@ -144,4 +147,74 @@ func (s *userService) ListUsers(page, pageSize int) ([]model.User, int64, error)
 	}
 
 	return users, total, nil
+}
+
+// GetUserByPhone 根据手机号获取用户
+func (s *userService) GetUserByPhone(phone string) (*model.User, error) {
+	var user model.User
+	if err := s.db.Where("phone = ?", phone).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("用户不存在，手机号: %s", phone)
+		}
+		return nil, fmt.Errorf("查询用户失败: %w", err)
+	}
+	return &user, nil
+}
+
+// RegisterByPhone 手机号注册
+func (s *userService) RegisterByPhone(phone string, code string, nickname string) (*model.User, error) {
+	// 验证验证码
+	verificationService := NewVerificationService()
+	valid, err := verificationService.VerifyCode(phone, code)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		return nil, errors.New("验证码错误或已过期")
+	}
+
+	// 检查手机号是否已注册
+	var existingUser model.User
+	if err := s.db.Where("phone = ?", phone).First(&existingUser).Error; err == nil {
+		return nil, fmt.Errorf("手机号 %s 已被注册", phone)
+	}
+
+	// 创建用户
+	user := &model.User{
+		Phone:    phone,
+		Nickname: nickname,
+		Status:   1, // 默认启用
+	}
+
+	if err := s.db.Create(user).Error; err != nil {
+		return nil, fmt.Errorf("注册失败: %w", err)
+	}
+
+	return user, nil
+}
+
+// LoginByPhone 手机号登录
+func (s *userService) LoginByPhone(phone string, code string) (*model.User, error) {
+	// 验证验证码
+	verificationService := NewVerificationService()
+	valid, err := verificationService.VerifyCode(phone, code)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		return nil, errors.New("验证码错误或已过期")
+	}
+
+	// 查询用户
+	user, err := s.GetUserByPhone(phone)
+	if err != nil {
+		return nil, fmt.Errorf("用户不存在，请先注册")
+	}
+
+	// 检查用户状态
+	if user.Status == 0 {
+		return nil, errors.New("用户已被禁用")
+	}
+
+	return user, nil
 }

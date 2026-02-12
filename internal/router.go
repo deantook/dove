@@ -18,6 +18,13 @@ func SetupRouter(r *gin.Engine) {
 			redis.GET("/get", handler.GetRedis)
 		}
 
+		auth := api.Group("/auth")
+		{
+			auth.POST("/send-code", handler.SendVerificationCode)
+			auth.POST("/register", handler.Register)
+			auth.POST("/login", handler.Login)
+		}
+
 		users := api.Group("/users")
 		{
 			users.POST("", handler.CreateUser)

@@ -1,13 +1,21 @@
 basePath: /
 definitions:
-  internal_handler.CreateUserRequest:
+  handler.AuthResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handler.CreateUserRequest:
     properties:
       username:
         type: string
     required:
     - username
     type: object
-  internal_handler.GetRedisResponse:
+  handler.GetRedisResponse:
     properties:
       message:
         type: string
@@ -16,7 +24,7 @@ definitions:
       value:
         type: string
     type: object
-  internal_handler.ListUsersResponse:
+  handler.ListUsersResponse:
     properties:
       page:
         type: integer
@@ -28,10 +36,49 @@ definitions:
         type: integer
       users:
         items:
-          $ref: '#/definitions/internal_handler.UserResponse'
+          $ref: '#/definitions/handler.UserResponse'
         type: array
     type: object
-  internal_handler.SetRedisRequest:
+  handler.LoginRequest:
+    properties:
+      code:
+        type: string
+      phone:
+        type: string
+    required:
+    - code
+    - phone
+    type: object
+  handler.RegisterRequest:
+    properties:
+      code:
+        type: string
+      nickname:
+        type: string
+      phone:
+        type: string
+    required:
+    - code
+    - phone
+    type: object
+  handler.SendVerificationCodeRequest:
+    properties:
+      phone:
+        type: string
+    required:
+    - phone
+    type: object
+  handler.SendVerificationCodeResponse:
+    properties:
+      code:
+        description: 开发阶段直接返回验证码
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handler.SetRedisRequest:
     properties:
       key:
         type: string
@@ -44,26 +91,36 @@ definitions:
     - key
     - value
     type: object
-  internal_handler.SetRedisResponse:
+  handler.SetRedisResponse:
     properties:
       message:
         type: string
       success:
         type: boolean
     type: object
-  internal_handler.UpdateUserRequest:
+  handler.UpdateUserRequest:
     properties:
       username:
         type: string
     required:
     - username
     type: object
-  internal_handler.UserResponse:
+  handler.UserResponse:
     properties:
+      avatar:
+        type: string
       create_time:
         type: string
       id:
         type: integer
+      nickname:
+        type: string
+      phone:
+        type: string
+      status:
+        type: integer
+      update_time:
+        type: string
       username:
         type: string
     type: object
@@ -74,6 +131,88 @@ info:
   title: Dove API
   version: "1.0"
 paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和验证码登录
+      parameters:
+      - description: 登录请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+      summary: 用户登录
+      tags:
+      - auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和验证码注册新用户
+      parameters:
+      - description: 注册请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+      summary: 用户注册
+      tags:
+      - auth
+  /api/v1/auth/send-code:
+    post:
+      consumes:
+      - application/json
+      description: 向指定手机号发送验证码（开发阶段直接返回验证码）
+      parameters:
+      - description: 发送验证码请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SendVerificationCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SendVerificationCodeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.SendVerificationCodeResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.SendVerificationCodeResponse'
+      summary: 发送验证码
+      tags:
+      - auth
   /api/v1/redis/get:
     get:
       description: 根据 key 从 Redis 读取 value
@@ -89,15 +228,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler.GetRedisResponse'
+            $ref: '#/definitions/handler.GetRedisResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_handler.GetRedisResponse'
+            $ref: '#/definitions/handler.GetRedisResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/internal_handler.GetRedisResponse'
+            $ref: '#/definitions/handler.GetRedisResponse'
       summary: 读取 Redis
       tags:
       - redis
@@ -112,22 +251,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.SetRedisRequest'
+          $ref: '#/definitions/handler.SetRedisRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler.SetRedisResponse'
+            $ref: '#/definitions/handler.SetRedisResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_handler.SetRedisResponse'
+            $ref: '#/definitions/handler.SetRedisResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/internal_handler.SetRedisResponse'
+            $ref: '#/definitions/handler.SetRedisResponse'
       summary: 写入 Redis
       tags:
       - redis
@@ -151,7 +290,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler.ListUsersResponse'
+            $ref: '#/definitions/handler.ListUsersResponse'
         "500":
           description: success, message
           schema:
@@ -169,7 +308,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.CreateUserRequest'
+          $ref: '#/definitions/handler.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -248,7 +387,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.UpdateUserRequest'
+          $ref: '#/definitions/handler.UpdateUserRequest'
       produces:
       - application/json
       responses:

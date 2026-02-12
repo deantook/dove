@@ -34,7 +34,12 @@ type UpdateUserRequest struct {
 type UserResponse struct {
 	ID         int    `json:"id"`
 	Username   string `json:"username"`
+	Phone      string `json:"phone"`
+	Nickname   string `json:"nickname"`
+	Avatar     string `json:"avatar"`
+	Status     int    `json:"status"`
 	CreateTime string `json:"create_time"`
+	UpdateTime string `json:"update_time"`
 }
 
 // ListUsersResponse 用户列表响应
@@ -253,9 +258,18 @@ func ListUsers(c *gin.Context) {
 
 // toUserResponse 转换为用户响应结构
 func toUserResponse(user *model.User) UserResponse {
-	return UserResponse{
+	response := UserResponse{
 		ID:         user.ID,
 		Username:   user.Username,
+		Phone:      user.Phone,
+		Nickname:   user.Nickname,
+		Avatar:     user.Avatar,
+		Status:     user.Status,
 		CreateTime: user.CreateTime.Format("2006-01-02 15:04:05"),
 	}
+	// 处理更新时间，如果为零值则不显示
+	if !user.UpdateTime.IsZero() {
+		response.UpdateTime = user.UpdateTime.Format("2006-01-02 15:04:05")
+	}
+	return response
 }
