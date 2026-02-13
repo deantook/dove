@@ -14,6 +14,40 @@ definitions:
     - phone
     - username
     type: object
+  model.LoginRequest:
+    properties:
+      code:
+        example: "123456"
+        type: string
+      phone:
+        example: "13800138000"
+        type: string
+    required:
+    - code
+    - phone
+    type: object
+  model.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/model.UserResponse'
+    type: object
+  model.SendCodeRequest:
+    properties:
+      phone:
+        example: "13800138000"
+        type: string
+    required:
+    - phone
+    type: object
+  model.SendCodeResponse:
+    properties:
+      code:
+        description: 验证码（开发阶段返回，生产环境不返回）
+        example: "123456"
+        type: string
+    type: object
   model.UpdateUserRequest:
     properties:
       phone:
@@ -87,6 +121,80 @@ info:
   title: dove API
   version: "1.0"
 paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和验证码登录或注册（如果用户不存在则自动注册）
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 登录或注册
+      tags:
+      - auth
+  /api/v1/auth/send-code:
+    post:
+      consumes:
+      - application/json
+      description: 发送手机验证码（开发阶段返回验证码）
+      parameters:
+      - description: 发送验证码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SendCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SendCodeResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 发送验证码
+      tags:
+      - auth
   /api/v1/users:
     get:
       description: 分页获取用户列表

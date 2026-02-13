@@ -13,8 +13,8 @@ type User struct {
 	Phone      string         `gorm:"column:phone;type:varchar(20);uniqueIndex" json:"phone"`
 	Avatar     string         `gorm:"column:avatar;type:varchar(500)" json:"avatar"`
 	Status     int            `gorm:"column:status;type:tinyint;default:1" json:"status"`
-	CreateTime time.Time      `gorm:"column:create_time" json:"create_time"`
-	UpdateTime time.Time      `gorm:"column:update_time" json:"update_time"`
+	CreateTime time.Time      `gorm:"column:create_time;autoCreateTime" json:"create_time"`
+	UpdateTime time.Time      `gorm:"column:update_time;autoUpdateTime" json:"update_time"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
@@ -57,4 +57,26 @@ func (u *User) ToResponse() *UserResponse {
 		CreateTime: u.CreateTime,
 		UpdateTime: u.UpdateTime,
 	}
+}
+
+// SendCodeRequest 发送验证码请求
+type SendCodeRequest struct {
+	Phone string `json:"phone" binding:"required,phone" example:"13800138000"`
+}
+
+// SendCodeResponse 发送验证码响应
+type SendCodeResponse struct {
+	Code string `json:"code" example:"123456"` // 验证码（开发阶段返回，生产环境不返回）
+}
+
+// LoginRequest 登录/注册请求
+type LoginRequest struct {
+	Phone string `json:"phone" binding:"required,phone" example:"13800138000"`
+	Code  string `json:"code" binding:"required,len=6" example:"123456"`
+}
+
+// LoginResponse 登录/注册响应
+type LoginResponse struct {
+	User  *UserResponse `json:"user"`
+	Token string        `json:"token"`
 }

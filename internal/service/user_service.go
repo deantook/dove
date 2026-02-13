@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/deantook/dove/internal/model"
 	"github.com/deantook/dove/internal/repository"
+	"github.com/deantook/dove/pkg/jwt"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -18,6 +21,8 @@ type UserService interface {
 	UpdateUser(ctx context.Context, id int, req *model.UpdateUserRequest) (*model.UserResponse, error)
 	DeleteUser(ctx context.Context, id int) error
 	ListUsers(ctx context.Context, page, pageSize int) ([]*model.UserResponse, int64, error)
+	SendCode(ctx context.Context, req *model.SendCodeRequest) (*model.SendCodeResponse, error)
+	LoginOrRegister(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error)
 }
 
 // userService 用户服务实现
@@ -50,9 +55,12 @@ func (s *userService) CreateUser(ctx context.Context, req *model.CreateUserReque
 		return nil, errors.New("查询用户失败")
 	}
 
+	now := time.Now()
 	user := &model.User{
-		Username: req.Username,
-		Phone:    req.Phone,
+		Username:   req.Username,
+		Phone:      req.Phone,
+		CreateTime: now,
+		UpdateTime: now,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
@@ -172,4 +180,76 @@ func (s *userService) ListUsers(ctx context.Context, page, pageSize int) ([]*mod
 	}
 
 	return responses, total, nil
+}
+
+// SendCode 发送验证码
+func (s *userService) SendCode(ctx context.Context, req *model.SendCodeRequest) (*model.SendCodeResponse, error) {
+	// 生成6位随机验证码
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	code := fmt.Sprintf("%06d", r.Intn(1000000))
+
+	// 将验证码存储到 Redis，有效期5分钟
+	if s.redis != nil {
+		codeKey := fmt.Sprintf("sms:code:%s", req.Phone)
+		if err := s.redis.Set(ctx, codeKey, code, 5*time.Minute).Err(); err != nil {
+			return nil, errors.New("存储验证码失败")
+		}
+	}
+
+	// 开发阶段返回验证码，生产环境不返回
+	return &model.SendCodeResponse{
+		Code: code,
+	}, nil
+}
+
+// LoginOrRegister 登录或注册
+func (s *userService) LoginOrRegister(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
+	// 验证验证码
+	if s.redis != nil {
+		codeKey := fmt.Sprintf("sms:code:%s", req.Phone)
+		storedCode, err := s.redis.Get(ctx, codeKey).Result()
+		if err == redis.Nil {
+			return nil, errors.New("验证码已过期或不存在")
+		} else if err != nil {
+			return nil, errors.New("验证验证码失败")
+		}
+
+		if storedCode != req.Code {
+			return nil, errors.New("验证码错误")
+		}
+
+		// 验证成功后删除验证码
+		s.redis.Del(ctx, codeKey)
+	}
+
+	// 查找用户是否存在
+	user, err := s.userRepo.GetByPhone(req.Phone)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.New("查询用户失败")
+	}
+
+	// 如果用户不存在，创建新用户
+	if err == gorm.ErrRecordNotFound {
+		now := time.Now()
+		user = &model.User{
+			Phone:      req.Phone,
+			Username:   req.Phone, // 默认用户名为手机号
+			CreateTime: now,
+			UpdateTime: now,
+		}
+		if err := s.userRepo.Create(user); err != nil {
+			return nil, errors.New("创建用户失败")
+		}
+	}
+
+	// 生成 JWT token
+	token, err := jwt.GenerateToken(user.ID)
+	if err != nil {
+		return nil, errors.New("生成token失败")
+	}
+
+	return &model.LoginResponse{
+		User:  user.ToResponse(),
+		Token: token,
+	}, nil
 }

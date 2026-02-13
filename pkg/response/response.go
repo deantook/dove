@@ -43,7 +43,7 @@ func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
 // SuccessWithCode 成功响应（带 HTTP 状态码）
 func SuccessWithCode(c *gin.Context, httpCode int, message string, data interface{}) {
 	c.JSON(httpCode, Response{
-		Code:    500,
+		Code:    200,
 		Message: message,
 		Data:    data,
 	})

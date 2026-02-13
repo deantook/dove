@@ -165,3 +165,58 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 	response.SuccessList(c, users, total, page, pageSize)
 }
+
+// SendCode 发送验证码
+// @Summary 发送验证码
+// @Description 发送手机验证码（开发阶段返回验证码）
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body model.SendCodeRequest true "发送验证码请求"
+// @Success 200 {object} response.Response{data=model.SendCodeResponse}
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /api/v1/auth/send-code [post]
+func (h *UserHandler) SendCode(c *gin.Context) {
+	var req model.SendCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorWithCode(c, http.StatusBadRequest, 400, "参数错误", err.Error())
+		return
+	}
+
+	result, err := h.userService.SendCode(c.Request.Context(), &req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "验证码发送成功", result)
+}
+
+// LoginOrRegister 登录或注册
+// @Summary 登录或注册
+// @Description 使用手机号和验证码登录或注册（如果用户不存在则自动注册）
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body model.LoginRequest true "登录请求"
+// @Success 200 {object} response.Response{data=model.LoginResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /api/v1/auth/login [post]
+func (h *UserHandler) LoginOrRegister(c *gin.Context) {
+	var req model.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorWithCode(c, http.StatusBadRequest, 400, "参数错误", err.Error())
+		return
+	}
+
+	result, err := h.userService.LoginOrRegister(c.Request.Context(), &req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "登录成功", result)
+}

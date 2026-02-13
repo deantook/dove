@@ -5,7 +5,10 @@ import (
 	"github.com/deantook/dove/internal/handler"
 	"github.com/deantook/dove/internal/middleware"
 	"github.com/deantook/dove/pkg/response"
+	customValidator "github.com/deantook/dove/pkg/validator"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -19,6 +22,11 @@ type Router struct {
 // NewRouter 创建路由实例
 func NewRouter(userHandler *handler.UserHandler) *Router {
 	engine := gin.New()
+
+	// 注册自定义验证器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		customValidator.RegisterPhoneValidator(v)
+	}
 
 	// 注册中间件
 	engine.Use(middleware.Logger())
@@ -38,6 +46,13 @@ func (r *Router) SetupRoutes() {
 	// API v1 路由组
 	v1 := r.engine.Group("/api/v1")
 	{
+		// 认证相关路由
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/send-code", r.userHandler.SendCode)
+			auth.POST("/login", r.userHandler.LoginOrRegister)
+		}
+
 		// 用户相关路由
 		users := v1.Group("/users")
 		{
