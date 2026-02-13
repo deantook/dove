@@ -1,5 +1,61 @@
 basePath: /api/v1
 definitions:
+  model.CreateProfileFieldTemplateRequest:
+    properties:
+      category:
+        example: 教育背景
+        maxLength: 50
+        type: string
+      default_unlock_rules:
+        example: '{"unlock_type":"CHAT","conditions":{"message_count":50}}'
+        type: string
+      default_value:
+        example: ""
+        type: string
+      description:
+        example: 最高学历
+        maxLength: 500
+        type: string
+      display_order:
+        example: 10
+        type: integer
+      field_key:
+        example: education
+        maxLength: 100
+        minLength: 1
+        type: string
+      field_name:
+        example: 学历
+        maxLength: 100
+        minLength: 1
+        type: string
+      field_type:
+        example: SELECT_SINGLE
+        type: string
+      icon:
+        example: ""
+        maxLength: 500
+        type: string
+      is_public:
+        example: false
+        type: boolean
+      is_required:
+        example: false
+        type: boolean
+      is_searchable:
+        example: true
+        type: boolean
+      options:
+        example: '{"options":[{"key":"bachelor","label":"本科"}]}'
+        type: string
+      validation:
+        example: '{}'
+        type: string
+    required:
+    - field_key
+    - field_name
+    - field_type
+    type: object
   model.CreateUserRequest:
     properties:
       phone:
@@ -33,6 +89,45 @@ definitions:
       user:
         $ref: '#/definitions/model.UserResponse'
     type: object
+  model.ProfileFieldTemplateResponse:
+    properties:
+      category:
+        type: string
+      create_time:
+        type: string
+      default_unlock_rules:
+        type: string
+      default_value:
+        type: string
+      description:
+        type: string
+      display_order:
+        type: integer
+      field_key:
+        type: string
+      field_name:
+        type: string
+      field_type:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_public:
+        type: boolean
+      is_required:
+        type: boolean
+      is_searchable:
+        type: boolean
+      options:
+        type: string
+      update_time:
+        type: string
+      validation:
+        type: string
+    type: object
   model.SendCodeRequest:
     properties:
       phone:
@@ -46,6 +141,56 @@ definitions:
       code:
         description: 验证码（开发阶段返回，生产环境不返回）
         example: "123456"
+        type: string
+    type: object
+  model.UpdateProfileFieldTemplateRequest:
+    properties:
+      category:
+        example: 教育背景
+        maxLength: 50
+        type: string
+      default_unlock_rules:
+        example: '{}'
+        type: string
+      default_value:
+        example: ""
+        type: string
+      description:
+        example: 最高学历
+        maxLength: 500
+        type: string
+      display_order:
+        example: 10
+        type: integer
+      field_name:
+        example: 学历
+        maxLength: 100
+        minLength: 1
+        type: string
+      field_type:
+        example: SELECT_SINGLE
+        type: string
+      icon:
+        example: ""
+        maxLength: 500
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      is_public:
+        example: false
+        type: boolean
+      is_required:
+        example: false
+        type: boolean
+      is_searchable:
+        example: true
+        type: boolean
+      options:
+        example: '{}'
+        type: string
+      validation:
+        example: '{}'
         type: string
     type: object
   model.UpdateUserRequest:
@@ -106,6 +251,32 @@ definitions:
         description: 响应消息
         example: success
         type: string
+    type: object
+  service.ApplyTemplateResult:
+    properties:
+      field_id:
+        type: integer
+      field_key:
+        type: string
+      field_name:
+        type: string
+      message:
+        type: string
+    type: object
+  service.ApplyTemplatesResult:
+    properties:
+      applied_fields:
+        items:
+          $ref: '#/definitions/service.ApplyTemplateResult'
+        type: array
+      failed_count:
+        type: integer
+      message:
+        type: string
+      success_count:
+        type: integer
+      total_count:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -195,6 +366,359 @@ paths:
       summary: 发送验证码
       tags:
       - auth
+  /api/v1/profile/field-templates:
+    get:
+      description: 分页获取字段模板列表
+      parameters:
+      - description: 字段分类
+        in: query
+        name: category
+        type: string
+      - description: 字段类型
+        in: query
+        name: field_type
+        type: string
+      - description: 是否启用
+        in: query
+        name: is_active
+        type: boolean
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/response.ListResponse'
+                  - properties:
+                      list:
+                        items:
+                          $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取字段模板列表
+      tags:
+      - profile-field-templates
+    post:
+      consumes:
+      - application/json
+      description: 创建新的系统资料字段模板（管理员）
+      parameters:
+      - description: 字段模板信息
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateProfileFieldTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 创建字段模板
+      tags:
+      - profile-field-templates
+  /api/v1/profile/field-templates/{id}:
+    delete:
+      description: 删除字段模板（管理员，软删除）
+      parameters:
+      - description: 字段模板 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 删除字段模板
+      tags:
+      - profile-field-templates
+    get:
+      description: 根据 ID 获取字段模板详情
+      parameters:
+      - description: 字段模板 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取字段模板详情
+      tags:
+      - profile-field-templates
+    put:
+      consumes:
+      - application/json
+      description: 更新字段模板信息（管理员）
+      parameters:
+      - description: 字段模板 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 字段模板信息
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateProfileFieldTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 更新字段模板
+      tags:
+      - profile-field-templates
+  /api/v1/profile/field-templates/{id}/apply:
+    post:
+      consumes:
+      - application/json
+      description: 将字段模板应用到当前用户，在 profile_fields 表中创建一条记录
+      parameters:
+      - description: 字段模板 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求参数
+        in: body
+        name: request
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.ApplyTemplateResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 应用字段模板到用户
+      tags:
+      - profile-field-templates
+  /api/v1/profile/field-templates/apply:
+    post:
+      consumes:
+      - application/json
+      description: 批量将字段模板应用到当前用户
+      parameters:
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.ApplyTemplatesResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 批量应用字段模板到用户
+      tags:
+      - profile-field-templates
+  /api/v1/profile/field-templates/category/{category}:
+    get:
+      description: 根据分类获取启用的字段模板列表
+      parameters:
+      - description: 字段分类
+        in: path
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 根据分类获取字段模板列表
+      tags:
+      - profile-field-templates
+  /api/v1/profile/field-templates/key/{key}:
+    get:
+      description: 根据字段标识获取字段模板详情
+      parameters:
+      - description: 字段标识
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ProfileFieldTemplateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 根据字段标识获取字段模板
+      tags:
+      - profile-field-templates
   /api/v1/users:
     get:
       description: 分页获取用户列表

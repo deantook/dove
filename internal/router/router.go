@@ -15,12 +15,13 @@ import (
 
 // Router 路由结构
 type Router struct {
-	engine      *gin.Engine
-	userHandler *handler.UserHandler
+	engine               *gin.Engine
+	userHandler          *handler.UserHandler
+	fieldTemplateHandler *handler.ProfileFieldTemplateHandler
 }
 
 // NewRouter 创建路由实例
-func NewRouter(userHandler *handler.UserHandler) *Router {
+func NewRouter(userHandler *handler.UserHandler, fieldTemplateHandler *handler.ProfileFieldTemplateHandler) *Router {
 	engine := gin.New()
 
 	// 注册自定义验证器
@@ -33,8 +34,9 @@ func NewRouter(userHandler *handler.UserHandler) *Router {
 	engine.Use(middleware.CORS())
 
 	return &Router{
-		engine:      engine,
-		userHandler: userHandler,
+		engine:               engine,
+		userHandler:          userHandler,
+		fieldTemplateHandler: fieldTemplateHandler,
 	}
 }
 
@@ -61,6 +63,20 @@ func (r *Router) SetupRoutes() {
 			users.GET("/:id", r.userHandler.GetUser)
 			users.PUT("/:id", r.userHandler.UpdateUser)
 			users.DELETE("/:id", r.userHandler.DeleteUser)
+		}
+
+		// 系统资料字段模板相关路由
+		fieldTemplates := v1.Group("/profile/field-templates")
+		{
+			fieldTemplates.GET("", r.fieldTemplateHandler.ListTemplates)
+			fieldTemplates.GET("/key/:key", r.fieldTemplateHandler.GetTemplateByFieldKey)
+			fieldTemplates.GET("/category/:category", r.fieldTemplateHandler.GetTemplatesByCategory)
+			fieldTemplates.POST("", r.fieldTemplateHandler.CreateTemplate)
+			fieldTemplates.GET("/:id", r.fieldTemplateHandler.GetTemplate)
+			fieldTemplates.PUT("/:id", r.fieldTemplateHandler.UpdateTemplate)
+			fieldTemplates.DELETE("/:id", r.fieldTemplateHandler.DeleteTemplate)
+			fieldTemplates.POST("/:id/apply", r.fieldTemplateHandler.ApplyTemplateToUser)
+			fieldTemplates.POST("/apply", r.fieldTemplateHandler.ApplyTemplatesToUser)
 		}
 	}
 

@@ -37,7 +37,11 @@ func InitializeServer(cfg *config.Config) (*gin.Engine, error) {
 	}
 	userService := service.NewUserService(userRepository, client)
 	userHandler := handler.NewUserHandler(userService)
-	routerRouter := router.NewRouter(userHandler)
+	profileFieldTemplateRepository := repository.NewProfileFieldTemplateRepository(db)
+	profileFieldRepository := repository.NewProfileFieldRepository(db)
+	profileFieldTemplateService := service.NewProfileFieldTemplateService(profileFieldTemplateRepository, profileFieldRepository)
+	profileFieldTemplateHandler := handler.NewProfileFieldTemplateHandler(profileFieldTemplateService)
+	routerRouter := router.NewRouter(userHandler, profileFieldTemplateHandler)
 	engine := routerProvider(routerRouter)
 	return engine, nil
 }
@@ -51,14 +55,18 @@ func routerProvider(r *router.Router) *gin.Engine {
 }
 
 // ProviderSet 提供者集合
-var ProviderSet = wire.NewSet(database.Init, redis.Init, repository.NewUserRepository, service.NewUserService, handler.NewUserHandler, router.NewRouter)
+var ProviderSet = wire.NewSet(database.Init, redis.Init, repository.NewUserRepository, repository.NewProfileFieldTemplateRepository, repository.NewProfileFieldRepository, service.NewUserService, service.NewProfileFieldTemplateService, handler.NewUserHandler, handler.NewProfileFieldTemplateHandler, router.NewRouter)
 
 // 显式声明依赖关系
 var (
 	_ *gorm.DB
 	_ *redis2.Client
 	_ repository.UserRepository
+	_ repository.ProfileFieldTemplateRepository
+	_ repository.ProfileFieldRepository
 	_ service.UserService
+	_ service.ProfileFieldTemplateService
 	_ *handler.UserHandler
+	_ *handler.ProfileFieldTemplateHandler
 	_ *router.Router
 )

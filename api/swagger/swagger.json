@@ -140,6 +140,579 @@
                 }
             }
         },
+        "/api/v1/profile/field-templates": {
+            "get": {
+                "description": "分页获取字段模板列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "获取字段模板列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "字段分类",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "字段类型",
+                        "name": "field_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否启用",
+                        "name": "is_active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/response.ListResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "list": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "创建新的系统资料字段模板（管理员）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "创建字段模板",
+                "parameters": [
+                    {
+                        "description": "字段模板信息",
+                        "name": "template",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateProfileFieldTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/field-templates/apply": {
+            "post": {
+                "description": "批量将字段模板应用到当前用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "批量应用字段模板到用户",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/service.ApplyTemplatesResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/field-templates/category/{category}": {
+            "get": {
+                "description": "根据分类获取启用的字段模板列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "根据分类获取字段模板列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "字段分类",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/field-templates/key/{key}": {
+            "get": {
+                "description": "根据字段标识获取字段模板详情",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "根据字段标识获取字段模板",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "字段标识",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/field-templates/{id}": {
+            "get": {
+                "description": "根据 ID 获取字段模板详情",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "获取字段模板详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "字段模板 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "更新字段模板信息（管理员）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "更新字段模板",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "字段模板 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "字段模板信息",
+                        "name": "template",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateProfileFieldTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ProfileFieldTemplateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除字段模板（管理员，软删除）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "删除字段模板",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "字段模板 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/field-templates/{id}/apply": {
+            "post": {
+                "description": "将字段模板应用到当前用户，在 profile_fields 表中创建一条记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-field-templates"
+                ],
+                "summary": "应用字段模板到用户",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "字段模板 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/service.ApplyTemplateResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "description": "分页获取用户列表",
@@ -458,6 +1031,79 @@
         }
     },
     "definitions": {
+        "model.CreateProfileFieldTemplateRequest": {
+            "type": "object",
+            "required": [
+                "field_key",
+                "field_name",
+                "field_type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "教育背景"
+                },
+                "default_unlock_rules": {
+                    "type": "string",
+                    "example": "{\"unlock_type\":\"CHAT\",\"conditions\":{\"message_count\":50}}"
+                },
+                "default_value": {
+                    "type": "string",
+                    "example": ""
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "最高学历"
+                },
+                "display_order": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "field_key": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "education"
+                },
+                "field_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "学历"
+                },
+                "field_type": {
+                    "type": "string",
+                    "example": "SELECT_SINGLE"
+                },
+                "icon": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": ""
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_required": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_searchable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "options": {
+                    "type": "string",
+                    "example": "{\"options\":[{\"key\":\"bachelor\",\"label\":\"本科\"}]}"
+                },
+                "validation": {
+                    "type": "string",
+                    "example": "{}"
+                }
+            }
+        },
         "model.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -505,6 +1151,65 @@
                 }
             }
         },
+        "model.ProfileFieldTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "create_time": {
+                    "type": "string"
+                },
+                "default_unlock_rules": {
+                    "type": "string"
+                },
+                "default_value": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer"
+                },
+                "field_key": {
+                    "type": "string"
+                },
+                "field_name": {
+                    "type": "string"
+                },
+                "field_type": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "is_required": {
+                    "type": "boolean"
+                },
+                "is_searchable": {
+                    "type": "boolean"
+                },
+                "options": {
+                    "type": "string"
+                },
+                "update_time": {
+                    "type": "string"
+                },
+                "validation": {
+                    "type": "string"
+                }
+            }
+        },
         "model.SendCodeRequest": {
             "type": "object",
             "required": [
@@ -524,6 +1229,72 @@
                     "description": "验证码（开发阶段返回，生产环境不返回）",
                     "type": "string",
                     "example": "123456"
+                }
+            }
+        },
+        "model.UpdateProfileFieldTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "教育背景"
+                },
+                "default_unlock_rules": {
+                    "type": "string",
+                    "example": "{}"
+                },
+                "default_value": {
+                    "type": "string",
+                    "example": ""
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "最高学历"
+                },
+                "display_order": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "field_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "学历"
+                },
+                "field_type": {
+                    "type": "string",
+                    "example": "SELECT_SINGLE"
+                },
+                "icon": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": ""
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_required": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_searchable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "options": {
+                    "type": "string",
+                    "example": "{}"
+                },
+                "validation": {
+                    "type": "string",
+                    "example": "{}"
                 }
             }
         },
@@ -608,6 +1379,46 @@
                     "description": "响应消息",
                     "type": "string",
                     "example": "success"
+                }
+            }
+        },
+        "service.ApplyTemplateResult": {
+            "type": "object",
+            "properties": {
+                "field_id": {
+                    "type": "integer"
+                },
+                "field_key": {
+                    "type": "string"
+                },
+                "field_name": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.ApplyTemplatesResult": {
+            "type": "object",
+            "properties": {
+                "applied_fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.ApplyTemplateResult"
+                    }
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
                 }
             }
         }

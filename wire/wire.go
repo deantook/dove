@@ -27,12 +27,16 @@ func InitializeServer(cfg *config.Config) (*gin.Engine, error) {
 
 		// Repository
 		repository.NewUserRepository,
+		repository.NewProfileFieldTemplateRepository,
+		repository.NewProfileFieldRepository,
 
 		// Service
 		service.NewUserService,
+		service.NewProfileFieldTemplateService,
 
 		// Handler
 		handler.NewUserHandler,
+		handler.NewProfileFieldTemplateHandler,
 
 		// Router
 		router.NewRouter,
@@ -53,8 +57,12 @@ var ProviderSet = wire.NewSet(
 	database.Init,
 	redisPkg.Init,
 	repository.NewUserRepository,
+	repository.NewProfileFieldTemplateRepository,
+	repository.NewProfileFieldRepository,
 	service.NewUserService,
+	service.NewProfileFieldTemplateService,
 	handler.NewUserHandler,
+	handler.NewProfileFieldTemplateHandler,
 	router.NewRouter,
 )
 
@@ -63,7 +71,11 @@ var (
 	_ *gorm.DB
 	_ *redis.Client
 	_ repository.UserRepository
+	_ repository.ProfileFieldTemplateRepository
+	_ repository.ProfileFieldRepository
 	_ service.UserService
+	_ service.ProfileFieldTemplateService
 	_ *handler.UserHandler
+	_ *handler.ProfileFieldTemplateHandler
 	_ *router.Router
 )
