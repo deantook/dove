@@ -31,7 +31,7 @@ WORKDIR /app
 COPY --from=builder /app/server .
 
 # 复制配置文件
-COPY --from=builder /app/config ./config
+COPY --from=builder /app/configs ./configs
 
 # 暴露端口
 EXPOSE 8080
