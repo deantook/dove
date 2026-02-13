@@ -1,14 +1,12 @@
-.PHONY: help swagger wire build run test clean install-tools migrate-up migrate-down migrate-version migrate-create
+.PHONY: help swagger wire build run test clean install-tools
 
 # 变量定义
 APP_NAME := dove
 MAIN_PATH := cmd/server/main.go
-MIGRATE_PATH := cmd/migrate/main.go
 SWAGGER_MAIN := cmd/server/main.go
 SWAGGER_OUTPUT := api/swagger
 WIRE_DIR := wire
 CONFIG_PATH := configs/config.yaml
-MIGRATIONS_DIR := migrations
 
 # 默认目标
 help:
@@ -22,12 +20,6 @@ help:
 	@echo "  make install-tools - 安装开发工具 (swag, wire)"
 	@echo "  make fmt          - 格式化代码"
 	@echo "  make lint         - 代码检查"
-	@echo ""
-	@echo "数据库迁移命令:"
-	@echo "  make migrate-up      - 执行所有待执行的迁移"
-	@echo "  make migrate-down    - 回滚一次迁移"
-	@echo "  make migrate-version - 显示当前迁移版本"
-	@echo "  make migrate-create NAME=<name> - 创建新的迁移文件"
 
 # 安装开发工具
 install-tools:
@@ -82,28 +74,6 @@ clean:
 	@echo "清理构建文件..."
 	@rm -f $(APP_NAME)
 	@echo "清理完成"
-
-# 数据库迁移命令
-migrate-up:
-	@echo "执行数据库迁移..."
-	@go run $(MIGRATE_PATH) -command=up -config=$(CONFIG_PATH) -path=$(MIGRATIONS_DIR)
-
-migrate-down:
-	@echo "回滚数据库迁移..."
-	@go run $(MIGRATE_PATH) -command=down -config=$(CONFIG_PATH) -path=$(MIGRATIONS_DIR)
-
-migrate-version:
-	@echo "查看迁移版本..."
-	@go run $(MIGRATE_PATH) -command=version -config=$(CONFIG_PATH) -path=$(MIGRATIONS_DIR)
-
-migrate-create:
-	@if [ -z "$(NAME)" ]; then \
-		echo "错误: 请使用 NAME=<name> 指定迁移文件名"; \
-		echo "示例: make migrate-create NAME=add_user_table"; \
-		exit 1; \
-	fi
-	@echo "创建迁移文件: $(NAME)..."
-	@go run $(MIGRATE_PATH) -command=create -name=$(NAME) -path=$(MIGRATIONS_DIR)
 
 # 完整构建流程（生成文档和代码后构建）
 all: swagger wire build

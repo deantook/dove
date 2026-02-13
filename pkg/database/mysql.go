@@ -43,9 +43,6 @@ func Init(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 
 	log.Println("数据库连接成功")
 
-	// 注意: 数据库迁移请使用 migrate 工具
-	// 运行: make migrate-up 或 go run cmd/migrate/main.go -command=up
-
 	return db, nil
 }
 
