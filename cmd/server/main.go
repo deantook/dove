@@ -1,40 +1,93 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/deantook/dove/internal"
-
-	"github.com/deantook/brigitta/pkg/config"
-	"github.com/deantook/brigitta/pkg/web"
+	"github.com/deantook/dove/internal/config"
+	"github.com/deantook/dove/pkg/redis"
+	"github.com/deantook/dove/wire"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	// 导入组件包会自动注册cache配置，虽然在其他代码中导入也会注册 但为了明确，还是在这里导入
-	_ "github.com/deantook/brigitta/pkg/cache"
-	_ "github.com/deantook/brigitta/pkg/database"
-	_ "github.com/deantook/dove/docs"
 )
 
-// @title           Dove API
+// @title           dove API
 // @version         1.0
-// @description     Dove 服务 API 文档
-// @host            localhost:8080
-// @BasePath        /
+// @description     基于 Gin + GORM + Wire 的脚手架服务
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
 func main() {
-	// 初始化配置系统（会自动绑定所有已注册的配置）
-	if err := config.Init(); err != nil {
-		panic(fmt.Errorf("failed to initialize config: %w", err))
+	// 加载配置
+	configPath := "configs/config.yaml"
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
 	}
 
-	// 启动Web应用
-	router := gin.Default()
-	internal.SetupRouter(router)
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	if err := web.Start(router); err != nil {
-		log.Fatalf("Failed to start web server: %v", err)
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		log.Fatalf("加载配置失败: %v", err)
 	}
+
+	// 设置 Gin 模式
+	gin.SetMode(cfg.Server.Mode)
+
+	// 使用 Wire 初始化服务器
+	engine, err := wire.InitializeServer(cfg)
+	if err != nil {
+		log.Fatalf("初始化服务器失败: %v", err)
+	}
+
+	// 创建 HTTP 服务器
+	srv := &http.Server{
+		Addr:           fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler:        engine,
+		ReadTimeout:    time.Duration(cfg.Server.ReadTimeout) * time.Second,
+		WriteTimeout:   time.Duration(cfg.Server.WriteTimeout) * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// 启动服务器（在 goroutine 中）
+	go func() {
+		log.Printf("服务器启动在端口 %d", cfg.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("服务器启动失败: %v", err)
+		}
+	}()
+
+	// 等待中断信号以优雅地关闭服务器
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("正在关闭服务器...")
+
+	// 设置 5 秒的超时时间用于关闭服务器
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("服务器强制关闭: %v", err)
+	}
+
+	// 关闭 Redis 连接
+	if err := redis.Close(); err != nil {
+		log.Printf("关闭 Redis 连接失败: %v", err)
+	}
+
+	log.Println("服务器已关闭")
 }

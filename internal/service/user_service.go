@@ -1,220 +1,175 @@
 package service
 
 import (
-	"errors"
+	"context"
 	"fmt"
 
 	"github.com/deantook/dove/internal/model"
-
-	"github.com/deantook/brigitta/pkg/database"
+	"github.com/deantook/dove/internal/repository"
+	"github.com/deantook/dove/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // UserService 用户服务接口
 type UserService interface {
-	CreateUser(username string) (*model.User, error)
-	GetUserByID(id int) (*model.User, error)
-	GetUserByUsername(username string) (*model.User, error)
-	GetUserByPhone(phone string) (*model.User, error)
-	UpdateUser(id int, username string) (*model.User, error)
-	DeleteUser(id int) error
-	ListUsers(page, pageSize int) ([]model.User, int64, error)
-	RegisterByPhone(phone string, code string, nickname string) (*model.User, error)
-	LoginByPhone(phone string, code string) (*model.User, error)
+	CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error)
+	GetUserByID(ctx context.Context, id int) (*model.UserResponse, error)
+	UpdateUser(ctx context.Context, id int, req *model.UpdateUserRequest) (*model.UserResponse, error)
+	DeleteUser(ctx context.Context, id int) error
+	ListUsers(ctx context.Context, page, pageSize int) ([]*model.UserResponse, int64, error)
 }
 
+// userService 用户服务实现
 type userService struct {
-	db *gorm.DB
+	userRepo repository.UserRepository
+	redis    *redis.Client
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService() UserService {
+func NewUserService(userRepo repository.UserRepository, redis *redis.Client) UserService {
 	return &userService{
-		db: database.GetDB(),
+		userRepo: userRepo,
+		redis:    redis,
 	}
 }
 
 // CreateUser 创建用户
-func (s *userService) CreateUser(username string) (*model.User, error) {
-	if username == "" {
-		return nil, errors.New("用户名不能为空")
+func (s *userService) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error) {
+	// 检查用户名是否已存在
+	if _, err := s.userRepo.GetByUsername(req.Username); err == nil {
+		return nil, errors.ErrUserAlreadyExists.WithDetail("用户名已存在")
+	} else if err != gorm.ErrRecordNotFound {
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
 	}
 
-	// 检查用户名是否已存在
-	var existingUser model.User
-	if err := s.db.Where("username = ?", username).First(&existingUser).Error; err == nil {
-		return nil, fmt.Errorf("用户名 %s 已存在", username)
+	// 检查手机号是否已存在
+	if _, err := s.userRepo.GetByPhone(req.Phone); err == nil {
+		return nil, errors.ErrUserAlreadyExists.WithDetail("手机号已存在")
+	} else if err != gorm.ErrRecordNotFound {
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
 	}
 
 	user := &model.User{
-		Username: username,
+		Username: req.Username,
+		Phone:    req.Phone,
 	}
 
-	if err := s.db.Create(user).Error; err != nil {
-		return nil, fmt.Errorf("创建用户失败: %w", err)
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "创建用户失败", 500)
 	}
 
-	return user, nil
+	return user.ToResponse(), nil
 }
 
-// GetUserByID 根据ID获取用户
-func (s *userService) GetUserByID(id int) (*model.User, error) {
-	var user model.User
-	if err := s.db.First(&user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("用户不存在，ID: %d", id)
-		}
-		return nil, fmt.Errorf("查询用户失败: %w", err)
+// GetUserByID 根据 ID 获取用户
+func (s *userService) GetUserByID(ctx context.Context, id int) (*model.UserResponse, error) {
+	// 尝试从缓存获取
+	cacheKey := fmt.Sprintf("user:%d", id)
+	if s.redis != nil {
+		// 这里可以添加缓存逻辑
+		_ = cacheKey
 	}
-	return &user, nil
-}
 
-// GetUserByUsername 根据用户名获取用户
-func (s *userService) GetUserByUsername(username string) (*model.User, error) {
-	var user model.User
-	if err := s.db.Where("username = ?", username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("用户不存在，用户名: %s", username)
+	user, err := s.userRepo.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("查询用户失败: %w", err)
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "获取用户失败", 500)
 	}
-	return &user, nil
+
+	return user.ToResponse(), nil
 }
 
 // UpdateUser 更新用户
-func (s *userService) UpdateUser(id int, username string) (*model.User, error) {
-	if username == "" {
-		return nil, errors.New("用户名不能为空")
-	}
-
-	// 检查用户是否存在
-	user, err := s.GetUserByID(id)
+func (s *userService) UpdateUser(ctx context.Context, id int, req *model.UpdateUserRequest) (*model.UserResponse, error) {
+	user, err := s.userRepo.GetByID(id)
 	if err != nil {
-		return nil, err
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrUserNotFound
+		}
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
 	}
 
-	// 检查新用户名是否已被其他用户使用
-	var existingUser model.User
-	if err := s.db.Where("username = ? AND id != ?", username, id).First(&existingUser).Error; err == nil {
-		return nil, fmt.Errorf("用户名 %s 已被使用", username)
+	// 如果更新用户名，检查是否重复
+	if req.Username != "" && req.Username != user.Username {
+		if _, err := s.userRepo.GetByUsername(req.Username); err == nil {
+			return nil, errors.ErrUserAlreadyExists.WithDetail("用户名已存在")
+		} else if err != gorm.ErrRecordNotFound {
+			return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		}
+		user.Username = req.Username
 	}
 
-	// 更新用户
-	user.Username = username
-	if err := s.db.Save(user).Error; err != nil {
-		return nil, fmt.Errorf("更新用户失败: %w", err)
+	// 如果更新手机号，检查是否重复
+	if req.Phone != "" && req.Phone != user.Phone {
+		if _, err := s.userRepo.GetByPhone(req.Phone); err == nil {
+			return nil, errors.ErrUserAlreadyExists.WithDetail("手机号已存在")
+		} else if err != gorm.ErrRecordNotFound {
+			return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		}
+		user.Phone = req.Phone
 	}
 
-	return user, nil
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.WrapError(err, errors.ErrCodeDBError, "更新用户失败", 500)
+	}
+
+	// 清除缓存
+	if s.redis != nil {
+		cacheKey := fmt.Sprintf("user:%d", id)
+		s.redis.Del(ctx, cacheKey)
+	}
+
+	return user.ToResponse(), nil
 }
 
 // DeleteUser 删除用户
-func (s *userService) DeleteUser(id int) error {
+func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	// 检查用户是否存在
-	_, err := s.GetUserByID(id)
-	if err != nil {
-		return err
+	if _, err := s.userRepo.GetByID(id); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		return errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
 	}
 
-	if err := s.db.Delete(&model.User{}, id).Error; err != nil {
-		return fmt.Errorf("删除用户失败: %w", err)
+	if err := s.userRepo.Delete(id); err != nil {
+		return errors.WrapError(err, errors.ErrCodeDBError, "删除用户失败", 500)
+	}
+
+	// 清除缓存
+	if s.redis != nil {
+		cacheKey := fmt.Sprintf("user:%d", id)
+		s.redis.Del(ctx, cacheKey)
 	}
 
 	return nil
 }
 
-// ListUsers 分页查询用户列表
-func (s *userService) ListUsers(page, pageSize int) ([]model.User, int64, error) {
+// ListUsers 获取用户列表（分页）
+func (s *userService) ListUsers(ctx context.Context, page, pageSize int) ([]*model.UserResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 10
 	}
-
-	var users []model.User
-	var total int64
-
-	// 获取总数
-	if err := s.db.Model(&model.User{}).Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("查询用户总数失败: %w", err)
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
-	// 分页查询
 	offset := (page - 1) * pageSize
-	if err := s.db.Order("id DESC").Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
-		return nil, 0, fmt.Errorf("查询用户列表失败: %w", err)
-	}
-
-	return users, total, nil
-}
-
-// GetUserByPhone 根据手机号获取用户
-func (s *userService) GetUserByPhone(phone string) (*model.User, error) {
-	var user model.User
-	if err := s.db.Where("phone = ?", phone).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("用户不存在，手机号: %s", phone)
-		}
-		return nil, fmt.Errorf("查询用户失败: %w", err)
-	}
-	return &user, nil
-}
-
-// RegisterByPhone 手机号注册
-func (s *userService) RegisterByPhone(phone string, code string, nickname string) (*model.User, error) {
-	// 验证验证码
-	verificationService := NewVerificationService()
-	valid, err := verificationService.VerifyCode(phone, code)
+	users, total, err := s.userRepo.List(offset, pageSize)
 	if err != nil {
-		return nil, err
-	}
-	if !valid {
-		return nil, errors.New("验证码错误或已过期")
+		return nil, 0, errors.WrapError(err, errors.ErrCodeDBError, "获取用户列表失败", 500)
 	}
 
-	// 检查手机号是否已注册
-	var existingUser model.User
-	if err := s.db.Where("phone = ?", phone).First(&existingUser).Error; err == nil {
-		return nil, fmt.Errorf("手机号 %s 已被注册", phone)
+	responses := make([]*model.UserResponse, 0, len(users))
+	for _, user := range users {
+		responses = append(responses, user.ToResponse())
 	}
 
-	// 创建用户
-	user := &model.User{
-		Phone:    phone,
-		Nickname: nickname,
-		Status:   1, // 默认启用
-	}
-
-	if err := s.db.Create(user).Error; err != nil {
-		return nil, fmt.Errorf("注册失败: %w", err)
-	}
-
-	return user, nil
-}
-
-// LoginByPhone 手机号登录
-func (s *userService) LoginByPhone(phone string, code string) (*model.User, error) {
-	// 验证验证码
-	verificationService := NewVerificationService()
-	valid, err := verificationService.VerifyCode(phone, code)
-	if err != nil {
-		return nil, err
-	}
-	if !valid {
-		return nil, errors.New("验证码错误或已过期")
-	}
-
-	// 查询用户
-	user, err := s.GetUserByPhone(phone)
-	if err != nil {
-		return nil, fmt.Errorf("用户不存在，请先注册")
-	}
-
-	// 检查用户状态
-	if user.Status == 0 {
-		return nil, errors.New("用户已被禁用")
-	}
-
-	return user, nil
+	return responses, total, nil
 }
