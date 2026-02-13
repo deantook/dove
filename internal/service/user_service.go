@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/deantook/dove/internal/model"
 	"github.com/deantook/dove/internal/repository"
-	"github.com/deantook/dove/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -38,16 +38,16 @@ func NewUserService(userRepo repository.UserRepository, redis *redis.Client) Use
 func (s *userService) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error) {
 	// 检查用户名是否已存在
 	if _, err := s.userRepo.GetByUsername(req.Username); err == nil {
-		return nil, errors.ErrUserAlreadyExists.WithDetail("用户名已存在")
+		return nil, errors.New("用户名已存在")
 	} else if err != gorm.ErrRecordNotFound {
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		return nil, errors.New("查询用户失败")
 	}
 
 	// 检查手机号是否已存在
 	if _, err := s.userRepo.GetByPhone(req.Phone); err == nil {
-		return nil, errors.ErrUserAlreadyExists.WithDetail("手机号已存在")
+		return nil, errors.New("手机号已存在")
 	} else if err != gorm.ErrRecordNotFound {
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		return nil, errors.New("查询用户失败")
 	}
 
 	user := &model.User{
@@ -56,7 +56,7 @@ func (s *userService) CreateUser(ctx context.Context, req *model.CreateUserReque
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "创建用户失败", 500)
+		return nil, errors.New("创建用户失败")
 	}
 
 	return user.ToResponse(), nil
@@ -74,9 +74,9 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*model.UserRespo
 	user, err := s.userRepo.GetByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrUserNotFound
+			return nil, errors.New("用户不存在")
 		}
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "获取用户失败", 500)
+		return nil, errors.New("查询用户失败")
 	}
 
 	return user.ToResponse(), nil
@@ -86,18 +86,18 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*model.UserRespo
 func (s *userService) UpdateUser(ctx context.Context, id int, req *model.UpdateUserRequest) (*model.UserResponse, error) {
 	user, err := s.userRepo.GetByID(id)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrUserNotFound
+		if errors.Is(gorm.ErrRecordNotFound, err) {
+			return nil, errors.New("用户不存在")
 		}
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		return nil, errors.New("更新用户失败")
 	}
 
 	// 如果更新用户名，检查是否重复
 	if req.Username != "" && req.Username != user.Username {
 		if _, err := s.userRepo.GetByUsername(req.Username); err == nil {
-			return nil, errors.ErrUserAlreadyExists.WithDetail("用户名已存在")
-		} else if err != gorm.ErrRecordNotFound {
-			return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+			return nil, errors.New("用户名已存在")
+		} else if !errors.Is(gorm.ErrRecordNotFound, err) {
+			return nil, errors.New("查询用户失败")
 		}
 		user.Username = req.Username
 	}
@@ -105,15 +105,15 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *model.UpdateU
 	// 如果更新手机号，检查是否重复
 	if req.Phone != "" && req.Phone != user.Phone {
 		if _, err := s.userRepo.GetByPhone(req.Phone); err == nil {
-			return nil, errors.ErrUserAlreadyExists.WithDetail("手机号已存在")
-		} else if err != gorm.ErrRecordNotFound {
-			return nil, errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+			return nil, errors.New("手机号已存在")
+		} else if !errors.Is(gorm.ErrRecordNotFound, err) {
+			return nil, errors.New("查询用户失败")
 		}
 		user.Phone = req.Phone
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
-		return nil, errors.WrapError(err, errors.ErrCodeDBError, "更新用户失败", 500)
+		return nil, errors.New("更新用户失败")
 	}
 
 	// 清除缓存
@@ -129,14 +129,14 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *model.UpdateU
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	// 检查用户是否存在
 	if _, err := s.userRepo.GetByID(id); err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.ErrUserNotFound
+		if errors.Is(gorm.ErrRecordNotFound, err) {
+			return errors.New("用户不存在")
 		}
-		return errors.WrapError(err, errors.ErrCodeDBError, "查询用户失败", 500)
+		return errors.New("查询用户失败")
 	}
 
 	if err := s.userRepo.Delete(id); err != nil {
-		return errors.WrapError(err, errors.ErrCodeDBError, "删除用户失败", 500)
+		return errors.New("删除用户失败")
 	}
 
 	// 清除缓存
@@ -163,7 +163,7 @@ func (s *userService) ListUsers(ctx context.Context, page, pageSize int) ([]*mod
 	offset := (page - 1) * pageSize
 	users, total, err := s.userRepo.List(offset, pageSize)
 	if err != nil {
-		return nil, 0, errors.WrapError(err, errors.ErrCodeDBError, "获取用户列表失败", 500)
+		return nil, 0, errors.New("查询用户列表失败")
 	}
 
 	responses := make([]*model.UserResponse, 0, len(users))
