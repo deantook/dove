@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/deantook/dove/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,14 +20,5 @@ func Logger() gin.HandlerFunc {
 			param.ErrorMessage,
 		)
 		return ""
-	})
-}
-
-// Recovery 错误恢复中间件
-func Recovery() gin.HandlerFunc {
-	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		log.Printf("Panic recovered: %v", recovered)
-		response.InternalServerError(c, "服务器内部错误", "Internal Server Error")
-		c.Abort()
 	})
 }

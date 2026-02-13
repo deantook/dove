@@ -37,7 +37,7 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req model.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "参数错误", err.Error())
+		response.ErrorWithCode(c, 500, 500, "无效的用户 ID", err.Error())
 		return
 	}
 
@@ -65,7 +65,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.BadRequest(c, "参数错误", "无效的用户 ID")
+		response.ErrorWithCode(c, 500, 500, "无效的用户 ID", err.Error())
 		return
 	}
 
@@ -96,13 +96,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.BadRequest(c, "参数错误", "无效的用户 ID")
+		response.ErrorWithCode(c, 500, 500, "无效的用户 ID", err.Error())
 		return
 	}
 
 	var req model.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "参数错误", err.Error())
+		response.ErrorWithCode(c, 500, 500, "参数错误", err.Error())
 		return
 	}
 
@@ -130,7 +130,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.BadRequest(c, "参数错误", "无效的用户 ID")
+		response.ErrorWithCode(c, 500, 500, "无效的用户 ID", err.Error())
 		return
 	}
 

@@ -22,9 +22,7 @@ func NewRouter(userHandler *handler.UserHandler) *Router {
 
 	// 注册中间件
 	engine.Use(middleware.Logger())
-	engine.Use(middleware.Recovery())
 	engine.Use(middleware.CORS())
-	engine.Use(middleware.ErrorHandler())
 
 	return &Router{
 		engine:      engine,
