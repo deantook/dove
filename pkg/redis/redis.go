@@ -29,7 +29,7 @@ func Init(cfg *config.RedisConfig) (*redis.Client, error) {
 		return nil, fmt.Errorf("Redis 连接失败: %w", err)
 	}
 
-	log.Println("Redis 连接成功")
+	log.Println("Redis 连接成功!")
 	return client, nil
 }
 
