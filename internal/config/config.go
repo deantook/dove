@@ -39,7 +39,7 @@ type DatabaseConfig struct {
 // RedisConfig Redis 配置
 type RedisConfig struct {
 	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
+	Port     string `mapstructure:"port"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
 	PoolSize int    `mapstructure:"pool_size"`
@@ -113,5 +113,5 @@ func (c *DatabaseConfig) GetDSN() string {
 
 // GetAddr 获取 Redis 地址
 func (c *RedisConfig) GetAddr() string {
-	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+	return fmt.Sprintf("%s:%s", c.Host, c.Port)
 }
