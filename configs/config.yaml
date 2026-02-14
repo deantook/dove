@@ -16,7 +16,7 @@ database:
 
 redis:
   host: ${REDISHOST}
-  port: ${REDISPORT}
+  port: 6379
   password: ${REDIS_PASSWORD}
   db: 0
   pool_size: 10
