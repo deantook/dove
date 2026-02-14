@@ -5,18 +5,18 @@ server:
   write_timeout: 30
 
 database:
-  host: 117.50.220.90
-  port: 3306
-  user: root
-  password: dean123
-  dbname: dove
+  host: ${MYSQLHOST}
+  port: ${MYSQLPORT}
+  user: ${MYSQLUSER}
+  password: ${MYSQL_ROOT_PASSWORD}
+  dbname: ${MYSQL_DATABASE}
   max_open_conns: 100
   max_idle_conns: 10
   conn_max_lifetime: 3600
 
 redis:
-  host: 117.50.220.90
-  port: 6379
-  password: dean123
+  host: ${REDISHOST}
+  port: ${REDISPORT}
+  password: ${REDIS_PASSWORD}
   db: 0
   pool_size: 10

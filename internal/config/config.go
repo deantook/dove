@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -25,7 +27,7 @@ type ServerConfig struct {
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
 	Host            string `mapstructure:"host"`
-	Port            int    `mapstructure:"port"`
+	Port            string `mapstructure:"port"`
 	User            string `mapstructure:"user"`
 	Password        string `mapstructure:"password"`
 	DBName          string `mapstructure:"dbname"`
@@ -56,6 +58,9 @@ func Load(configPath string) (*Config, error) {
 	// 设置环境变量前缀（可选）
 	viper.SetEnvPrefix("APP")
 
+	// 设置环境变量替换函数，支持 ${VAR} 格式
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
@@ -65,9 +70,29 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
+	// 替换配置结构体中的环境变量占位符
+	expandConfigEnvVars(&config)
+
 	globalConfig = &config
 	log.Printf("配置文件加载成功: %s", configPath)
 	return &config, nil
+}
+
+// expandConfigEnvVars 展开配置结构体中的环境变量
+func expandConfigEnvVars(cfg *Config) {
+	// 展开数据库配置中的环境变量
+	cfg.Database.Port = os.ExpandEnv(cfg.Database.Port)
+	cfg.Database.Host = os.ExpandEnv(cfg.Database.Host)
+	cfg.Database.User = os.ExpandEnv(cfg.Database.User)
+	cfg.Database.Password = os.ExpandEnv(cfg.Database.Password)
+	cfg.Database.DBName = os.ExpandEnv(cfg.Database.DBName)
+
+	// 展开服务器配置中的环境变量
+	cfg.Server.Mode = os.ExpandEnv(cfg.Server.Mode)
+
+	// 展开 Redis 配置中的环境变量
+	cfg.Redis.Host = os.ExpandEnv(cfg.Redis.Host)
+	cfg.Redis.Password = os.ExpandEnv(cfg.Redis.Password)
 }
 
 // Get 获取全局配置
@@ -77,7 +102,7 @@ func Get() *Config {
 
 // GetDSN 获取数据库连接字符串
 func (c *DatabaseConfig) GetDSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.User,
 		c.Password,
 		c.Host,
