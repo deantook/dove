@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: dove-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: dean
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  data:
+    redis:
+      host: localhost
+      password: dean123
+      port: 6379
+
+server:
+  port: 8080
+
+dove:
+  session:
+    ttl: 7d
